@@ -15,6 +15,8 @@
  */
 package org.springframework.sbm.api.client;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.stomp.*;
 import org.springframework.sbm.api.model.ScanResult;
@@ -29,11 +31,12 @@ import java.util.concurrent.CompletableFuture;
 /**
  * @author Fabian Krüger
  */
-
+@Slf4j
 @Service
-public class SbmWebSocketClient implements SbmClient {
-    @Autowired
-    private WebSocketClientFactory webSocketClientFactory;
+@RequiredArgsConstructor
+public class SbmClientWsImpl implements SbmClient {
+
+    private final WebSocketClientFactory webSocketClientFactory;
 
     private WebSocketStompClient stompClient;
 
@@ -42,6 +45,7 @@ public class SbmWebSocketClient implements SbmClient {
     private final String HANDSHAKE_URL = "ws://127.0.0.1:8080/endpoint";
 
     private StompSession stompSession;
+
 
 
     private WebSocketStompClient getWebSocketStompClient() throws Exception {

@@ -21,10 +21,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 
-import org.springframework.sbm.api.client.SbmWebSocketClient;
+import org.springframework.messaging.converter.StringMessageConverter;
+import org.springframework.sbm.api.client.SbmClientWsImpl;
 import org.springframework.sbm.api.client.WebSocketClientFactory;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 
+import java.net.URI;
+import java.nio.file.Path;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
@@ -33,11 +42,16 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class SbmClientTest {
 
+    private static final String PROJECT_ROOT = "/users/user1/source/aproject";
+
     @Autowired
     private WebSocketClientFactory stompClientFactory;
 
     @Autowired
-    SbmWebSocketClient clientService;
+    SbmClientWsImpl clientService;
+
+    @Autowired
+    private ApiServerController controller;
 
     @Autowired
     private ApiServerController apiServerController;
@@ -58,5 +72,26 @@ public class SbmClientTest {
         assertNotNull(stompClientFactory);
         assertNotNull(clientService) ;
     }
+
+    @Test
+    void sendScanRequest() throws Exception {
+
+        BlockingQueue<String> blockingQueue = new ArrayBlockingQueue<>(1);
+        controller.setBlockingQueue(blockingQueue);
+
+        webSocketStompClient.setMessageConverter(new StringMessageConverter());
+        Path p = Path.of(PROJECT_ROOT);
+        clientService.scan(p);
+        System.out.println(String.format("Before await queue size %d", blockingQueue.size()));
+        Thread.sleep(2000);
+        await()
+                .atMost(1, SECONDS)
+                .untilAsserted(() -> assertEquals(PROJECT_ROOT, blockingQueue.poll()));
+    }
+
+    public String getWsPath() {
+        return String.format("ws://localhost:%d/ws-endpoint", port);
+    }
+
 
 }
